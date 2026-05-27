@@ -1,0 +1,48 @@
+# Node.js
+node_modules/
+dist/
+.env
+.env.local
+
+# Next.js
+.next/
+out/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploaded offer letters (local dev)
+web/public/uploads/
+
+# dependencies
+node_modules
+venv
+__pycache__
+
+# env
+.env
+.env.local
+.env.development.local
+
+# next
+.next
+out
+
+# prisma
+prisma/dev.db
+
+# uploads
+public/uploads
+
+# logs
+*.log

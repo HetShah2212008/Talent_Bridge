@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String            @id @default(cuid())
+  clerkId             String            @unique
+  email               String            @unique
+  firstName           String
+  lastName            String
+  role                Role?
+  onboardingCompleted Boolean           @default(false)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  companyId           String?
+  applications        Application[]
+  statusUpdates       Application[]     @relation("StatusUpdates")
+  candidateProfile    CandidateProfile?
+  candidateEvents     Event[]           @relation("CandidateEvents")
+  recruiterEvents     Event[]           @relation("RecruiterEvents")
+  jobs                Job[]
+  receivedMessages    Message[]         @relation("ReceivedMessages")
+  sentMessages        Message[]         @relation("SentMessages")
+  recruiterInvites    RecruiterInvite[] @relation("CompanyInvites")
+  recruiterProfile    RecruiterProfile?
+  company             User?             @relation("CompanyMembers", fields: [companyId], references: [id])
+  companyMembers      User[]            @relation("CompanyMembers")
+
+  @@index([role])
+  @@index([companyId])
+}
+
+model RecruiterInvite {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  companyId String
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  company   User     @relation("CompanyInvites", fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model CandidateProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  headline   String?
+  bio        String?
+  resumeUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  resumeText String?
+  embedding  Json?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RecruiterProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  companyName String?
+  position    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id           String        @id @default(cuid())
+  title        String
+  description  String
+  location     String?
+  salary       String?
+  createdAt    DateTime      @default(now())
+  recruiterId  String
+  embedding    Json?
+  company      String
+  skills       String
+  applications Application[]
+  recruiter    User          @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+}
+
+model Application {
+  id                    String            @id @default(cuid())
+  status                ApplicationStatus @default(APPLIED)
+  createdAt             DateTime          @default(now())
+  candidateId           String
+  jobId                 String
+  statusUpdatedAt       DateTime          @default(now())
+  statusUpdatedById     String?
+  offerLetterPath       String?
+  offerLetterUploadedAt DateTime?
+  candidate             User              @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job                   Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  statusUpdatedBy       User?             @relation("StatusUpdates", fields: [statusUpdatedById], references: [id])
+  events                Event[]
+  messages              Message[]
+
+  @@unique([candidateId, jobId])
+  @@index([status])
+  @@index([candidateId])
+}
+
+model Event {
+  id            String      @id @default(cuid())
+  type          EventType
+  title         String
+  scheduledAt   DateTime
+  meetingLink   String?
+  instructions  String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  applicationId String
+  candidateId   String
+  recruiterId   String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  candidate     User        @relation("CandidateEvents", fields: [candidateId], references: [id], onDelete: Cascade)
+  recruiter     User        @relation("RecruiterEvents", fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId, scheduledAt])
+  @@index([applicationId])
+}
+
+model Message {
+  id            String      @id @default(cuid())
+  text          String
+  createdAt     DateTime    @default(now())
+  senderId      String
+  receiverId    String
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  receiver      User        @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender        User        @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+}
+
+enum Role {
+  CANDIDATE
+  RECRUITER
+  ADMIN
+  COMPANY
+}
+
+enum ApplicationStatus {
+  APPLIED
+  OA_SCHEDULED
+  INTERVIEW
+  SELECTED
+  REJECTED
+}
+
+enum EventType {
+  OA
+  INTERVIEW
+  MEETING
+}
