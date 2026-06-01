@@ -17,6 +17,8 @@ export async function completeOnboarding(
   const session = await auth();
   if (!session.userId) return { error: "Not authenticated." };
 
+  const { userId, sessionClaims } = session;
+
   const role = formData.get("role") as string;
   const code = ((formData.get("code") as string) ?? "").trim();
 
@@ -46,16 +48,17 @@ export async function completeOnboarding(
     }
   }
 
-  const { userId, sessionClaims } = session;
   const email = (sessionClaims?.email as string) ?? "";
   const fullName = ((sessionClaims?.fullName ?? sessionClaims?.name ?? "") as string);
   const [firstName = "", ...rest] = fullName.trim().split(" ");
   const lastName = rest.join(" ");
 
+  // Find by clerkId first, then fall back to email to avoid unique constraint crash
   let user = await prisma.user.findUnique({ where: { clerkId: userId } });
   if (!user && email) {
     user = await prisma.user.findUnique({ where: { email } });
     if (user) {
+      // Row exists with same email but different clerkId — sync it
       user = await prisma.user.update({
         where: { email },
         data: { clerkId: userId },
@@ -63,6 +66,7 @@ export async function completeOnboarding(
     }
   }
   if (!user) {
+    // No row at all — webhook hasn't fired yet, create it now
     user = await prisma.user.create({
       data: {
         clerkId: userId,
@@ -75,7 +79,7 @@ export async function completeOnboarding(
     });
   }
 
-  // Already onboarded — return redirect target without calling redirect()
+  // Already onboarded — just redirect, do not overwrite role
   if (user.role) {
     const destinations: Record<string, string> = {
       RECRUITER: "/recruiter/dashboard",
@@ -89,6 +93,7 @@ export async function completeOnboarding(
     };
   }
 
+  // Set the role
   const updated = await prisma.user.update({
     where: { clerkId: userId },
     data: {
