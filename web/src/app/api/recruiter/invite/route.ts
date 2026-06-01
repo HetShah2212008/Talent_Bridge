@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { requireApiRole } from "@/lib/auth/api-user";

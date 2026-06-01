@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 import { getApiDbUser, jsonForbidden, jsonUnauthorized } from "@/lib/auth/api-user";
 import { applyToJobWorkflow } from "@/lib/workflows/applications";
