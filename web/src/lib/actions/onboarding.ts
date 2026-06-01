@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { Role } from "@prisma/client";
 import { ensureCandidateProfile } from "@/lib/auth/candidate-profile";
 
@@ -48,10 +48,10 @@ export async function completeOnboarding(
     }
   }
 
-  const email = (sessionClaims?.email as string) ?? "";
-  const fullName = ((sessionClaims?.fullName ?? sessionClaims?.name ?? "") as string);
-  const [firstName = "", ...rest] = fullName.trim().split(" ");
-  const lastName = rest.join(" ");
+  const clerkUser = await currentUser();
+  const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? "";
+  const firstName = clerkUser?.firstName ?? "";
+  const lastName = clerkUser?.lastName ?? "";
 
   // Find by clerkId first, then fall back to email to avoid unique constraint crash
   let user = await prisma.user.findUnique({ where: { clerkId: userId } });
