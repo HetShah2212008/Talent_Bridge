@@ -37,11 +37,24 @@ export async function completeOnboarding(
     }
   }
 
-  const user = await prisma.user.findUnique({
-    where: { clerkId: session.userId },
-  });
+  const { userId, sessionClaims } = session;
+  const email = (sessionClaims?.email as string) ?? "";
+  const fullName = ((sessionClaims?.fullName ?? sessionClaims?.name ?? "") as string);
+  const [firstName = "", ...rest] = fullName.trim().split(" ");
+  const lastName = rest.join(" ");
 
-  if (!user) return { error: "User not found. Please sign in again." };
+  const user = await prisma.user.upsert({
+    where: { clerkId: userId },
+    update: {},
+    create: {
+      clerkId: userId,
+      email,
+      firstName,
+      lastName,
+      role: null,
+      onboardingCompleted: false,
+    },
+  });
 
   // Already onboarded — return redirect target without calling redirect()
   if (user.role) {
@@ -58,7 +71,7 @@ export async function completeOnboarding(
   }
 
   const updated = await prisma.user.update({
-    where: { clerkId: session.userId },
+    where: { clerkId: userId },
     data: {
       role: role as Role,
       onboardingCompleted: true,
