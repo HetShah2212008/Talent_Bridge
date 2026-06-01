@@ -1,14 +1,17 @@
+import math
 from typing import Any
-
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 
 from app.core.config import MIN_SIMILARITY
 from app.services.embeddings import embed_text
 
 
 def cosine_sim(a: list[float], b: list[float]) -> float:
-    score = float(cosine_similarity([a], [b])[0][0])
+    dot = sum(x * y for x, y in zip(a, b))
+    mag_a = math.sqrt(sum(x * x for x in a))
+    mag_b = math.sqrt(sum(x * x for x in b))
+    if mag_a == 0.0 or mag_b == 0.0:
+        return 0.0
+    score = dot / (mag_a * mag_b)
     return round(max(0.0, min(1.0, score)), 4)
 
 
