@@ -52,18 +52,28 @@ export async function completeOnboarding(
   const [firstName = "", ...rest] = fullName.trim().split(" ");
   const lastName = rest.join(" ");
 
-  const user = await prisma.user.upsert({
-    where: { clerkId: userId },
-    update: {},
-    create: {
-      clerkId: userId,
-      email,
-      firstName,
-      lastName,
-      role: null,
-      onboardingCompleted: false,
-    },
-  });
+  let user = await prisma.user.findUnique({ where: { clerkId: userId } });
+  if (!user && email) {
+    user = await prisma.user.findUnique({ where: { email } });
+    if (user) {
+      user = await prisma.user.update({
+        where: { email },
+        data: { clerkId: userId },
+      });
+    }
+  }
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        clerkId: userId,
+        email,
+        firstName,
+        lastName,
+        role: null,
+        onboardingCompleted: false,
+      },
+    });
+  }
 
   // Already onboarded — return redirect target without calling redirect()
   if (user.role) {
