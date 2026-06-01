@@ -3,7 +3,7 @@ import os
 import httpx
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-EMBED_URL = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent"
+EMBED_URL = "https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent"
 
 
 def embed_text(text: str) -> list[float]:
