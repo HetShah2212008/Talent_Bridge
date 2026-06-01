@@ -73,10 +73,7 @@ export async function ensureCurrentUser() {
   }
 
   if (!user.role) {
-    user = await prisma.user.update({
-      where: { id: user.id },
-      data: { role: Role.CANDIDATE, onboardingCompleted: true },
-    });
+    return user;
   }
 
   await ensureCandidateProfile(user.id);

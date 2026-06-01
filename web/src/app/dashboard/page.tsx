@@ -13,7 +13,8 @@ export default async function DashboardPage() {
 
   if (session.userId) {
     const dbUser = await getDbUser();
-    if (dbUser && !dbUser.role) {
+    // No DB user yet (webhook not fired) or user has no role → must complete onboarding
+    if (!dbUser || !dbUser.role) {
       redirect("/onboarding/role");
     }
   }

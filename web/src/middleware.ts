@@ -6,6 +6,8 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks/clerk(.*)",
+  "/onboarding/role",
+  "/auth/complete",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
@@ -17,11 +19,6 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (!session.userId) {
     return session.redirectToSignIn({ returnBackUrl: req.url });
-  }
-
-  // Legacy onboarding URL
-  if (req.nextUrl.pathname.startsWith("/onboarding")) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   // Role authorization: Prisma only via layout `requireRole()` and API `requireApiRole()`
