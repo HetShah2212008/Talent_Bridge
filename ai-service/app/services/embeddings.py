@@ -3,7 +3,7 @@ import os
 import httpx
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-EMBED_URL = "https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent"
+EMBED_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent"
 
 
 def embed_text(text: str) -> list[float]:
@@ -15,7 +15,7 @@ def embed_text(text: str) -> list[float]:
     response = httpx.post(
         f"{EMBED_URL}?key={GEMINI_API_KEY}",
         json={
-            "model": "models/text-embedding-004",
+            "model": "models/gemini-embedding-001",
             "content": {"parts": [{"text": cleaned}]},
         },
         timeout=30.0,
