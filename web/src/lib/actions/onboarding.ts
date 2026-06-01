@@ -1,17 +1,21 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { Role } from "@prisma/client";
 import { ensureCandidateProfile } from "@/lib/auth/candidate-profile";
 
+type OnboardingResult =
+  | { error: string }
+  | { success: true; redirectTo: string }
+  | null;
+
 export async function completeOnboarding(
-  prevState: { error: string } | null,
+  prevState: OnboardingResult,
   formData: FormData
-): Promise<{ error: string } | null> {
+): Promise<OnboardingResult> {
   const session = await auth();
-  if (!session.userId) redirect("/sign-in");
+  if (!session.userId) return { error: "Not authenticated." };
 
   const role = formData.get("role") as string;
   const code = ((formData.get("code") as string) ?? "").trim();
@@ -28,9 +32,6 @@ export async function completeOnboarding(
   }
 
   if (role === "RECRUITER") {
-    // No standalone validation function exists in lib/recruiter-invite.ts —
-    // codes are validated at signup time via the recruiterInvite table.
-    // Here we just ensure a code was provided; full validation happens on signup.
     if (!code) {
       return { error: "Please enter a recruiter invite code." };
     }
@@ -40,13 +41,20 @@ export async function completeOnboarding(
     where: { clerkId: session.userId },
   });
 
-  if (!user) redirect("/sign-in");
+  if (!user) return { error: "User not found. Please sign in again." };
 
+  // Already onboarded — return redirect target without calling redirect()
   if (user.role) {
-    if (user.role === Role.RECRUITER) redirect("/recruiter/dashboard");
-    if (user.role === Role.COMPANY) redirect("/company/dashboard");
-    if (user.role === Role.ADMIN) redirect("/admin/dashboard");
-    redirect("/candidate/dashboard");
+    const destinations: Record<string, string> = {
+      RECRUITER: "/recruiter/dashboard",
+      COMPANY: "/company/dashboard",
+      ADMIN: "/admin/dashboard",
+      CANDIDATE: "/candidate/dashboard",
+    };
+    return {
+      success: true,
+      redirectTo: destinations[user.role] ?? "/candidate/dashboard",
+    };
   }
 
   const updated = await prisma.user.update({
@@ -61,7 +69,14 @@ export async function completeOnboarding(
     await ensureCandidateProfile(updated.id);
   }
 
-  if (updated.role === Role.RECRUITER) redirect("/recruiter/dashboard");
-  if (updated.role === Role.COMPANY) redirect("/company/dashboard");
-  redirect("/candidate/dashboard");
+  const destinations: Record<string, string> = {
+    RECRUITER: "/recruiter/dashboard",
+    COMPANY: "/company/dashboard",
+    CANDIDATE: "/candidate/dashboard",
+  };
+
+  return {
+    success: true,
+    redirectTo: destinations[role] ?? "/candidate/dashboard",
+  };
 }

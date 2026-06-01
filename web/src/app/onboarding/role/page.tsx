@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,31 +10,22 @@ import { completeOnboarding } from "@/lib/actions/onboarding";
 
 type Role = "CANDIDATE" | "COMPANY" | "RECRUITER";
 
-const ROLES: {
-  value: Role;
-  label: string;
-  description: string;
-}[] = [
-  {
-    value: "CANDIDATE",
-    label: "Candidate",
-    description: "Find and apply to jobs",
-  },
-  {
-    value: "COMPANY",
-    label: "Company",
-    description: "Post jobs and manage hiring",
-  },
-  {
-    value: "RECRUITER",
-    label: "Recruiter",
-    description: "Review candidates and manage applications",
-  },
+const ROLES: { value: Role; label: string; description: string }[] = [
+  { value: "CANDIDATE", label: "Candidate", description: "Find and apply to jobs" },
+  { value: "COMPANY", label: "Company", description: "Post jobs and manage hiring" },
+  { value: "RECRUITER", label: "Recruiter", description: "Review candidates and manage applications" },
 ];
 
 export default function OnboardingRolePage() {
+  const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [state, formAction, isPending] = useActionState(completeOnboarding, null);
+
+  useEffect(() => {
+    if (state && "success" in state && state.success) {
+      router.push(state.redirectTo);
+    }
+  }, [state, router]);
 
   const showCodeInput = selectedRole === "COMPANY" || selectedRole === "RECRUITER";
   const codeLabel =
@@ -48,10 +40,8 @@ export default function OnboardingRolePage() {
         </div>
 
         <form action={formAction} className="space-y-6">
-          {/* Hidden role input */}
           <input type="hidden" name="role" value={selectedRole ?? ""} />
 
-          {/* Role cards */}
           <div className="grid gap-3">
             {ROLES.map(({ value, label, description }) => (
               <Card
@@ -69,7 +59,6 @@ export default function OnboardingRolePage() {
                     <p className="font-medium text-foreground">{label}</p>
                     <p className="text-sm text-muted-foreground">{description}</p>
                   </div>
-                  {/* Selection indicator */}
                   <div
                     className={[
                       "h-4 w-4 rounded-full border-2 shrink-0 transition-colors",
@@ -83,13 +72,9 @@ export default function OnboardingRolePage() {
             ))}
           </div>
 
-          {/* Code input — shown only for Company and Recruiter */}
           {showCodeInput && (
             <div className="space-y-2">
-              <label
-                htmlFor="code"
-                className="text-sm font-medium text-foreground"
-              >
+              <label htmlFor="code" className="text-sm font-medium text-foreground">
                 {codeLabel}
               </label>
               <Input
@@ -103,11 +88,9 @@ export default function OnboardingRolePage() {
             </div>
           )}
 
-          {/* Hidden code input when not shown, so formData always has the key */}
           {!showCodeInput && <input type="hidden" name="code" value="" />}
 
-          {/* Error message */}
-          {state?.error && (
+          {state && "error" in state && (
             <p className="text-sm text-destructive">{state.error}</p>
           )}
 
