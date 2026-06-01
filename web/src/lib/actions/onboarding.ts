@@ -35,6 +35,15 @@ export async function completeOnboarding(
     if (!code) {
       return { error: "Please enter a recruiter invite code." };
     }
+    const invite = await prisma.recruiterInvite.findUnique({
+      where: { code },
+    });
+    if (!invite) {
+      return { error: "Invalid recruiter invite code." };
+    }
+    if (invite.isUsed) {
+      return { error: "This invite code has already been used." };
+    }
   }
 
   const { userId, sessionClaims } = session;
@@ -80,6 +89,22 @@ export async function completeOnboarding(
 
   if (updated.role === Role.CANDIDATE) {
     await ensureCandidateProfile(updated.id);
+  }
+
+  if (updated.role === Role.RECRUITER) {
+    const invite = await prisma.recruiterInvite.findUnique({
+      where: { code },
+    });
+    if (invite) {
+      await prisma.user.update({
+        where: { id: updated.id },
+        data: { companyId: invite.companyId },
+      });
+      await prisma.recruiterInvite.update({
+        where: { code },
+        data: { isUsed: true },
+      });
+    }
   }
 
   const destinations: Record<string, string> = {
